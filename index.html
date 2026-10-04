@@ -60,7 +60,7 @@
 
     @media (min-width: 768px) {
       .camera-pane {
-        max-width: 520px; /* PCでのカメラエリアの最大幅 */
+        max-width: 520px;
       }
     }
 
@@ -130,7 +130,7 @@
       flex-shrink: 0; 
     }
 
-    /* ★ PCなど横幅がある画面ではカメラを横長（4:3）にして黒帯（余白）を解消 ★ */
+    /* PCなど横幅がある画面ではカメラを横長（4:3）にして黒帯を解消 */
     @media (min-width: 768px) {
       .camera-wrapper {
         aspect-ratio: 4 / 3; 
@@ -467,7 +467,7 @@
 
     const webcamElement = document.getElementById('webcam');
     
-    // カメラの起動処理
+    // カメラの起動処理（エラーハンドリングと制約をブラウザ互換仕様に修正）
     async function initCamera(facingModeChoice) {
       document.getElementById('camera-select-screen').style.display = 'none';
       document.getElementById('loading-screen').style.display = 'block';
@@ -475,18 +475,23 @@
       try {
         let stream;
         try {
+          // まず指定された向き（外または内）で取得を試みる
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { exact: facingModeChoice }, width: { ideal: 640 }, height: { ideal: 480 } },
+            video: { facingMode: facingModeChoice },
             audio: false
           });
         } catch (err) {
+          // PC等で facingMode が適用できずに失敗した場合のフォールバック
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 } },
+            video: true,
             audio: false
           });
         }
+        
         webcamElement.srcObject = stream;
+        await webcamElement.play().catch(() => {});
 
+        // MobileNetのロード
         net = await mobilenet.load({version: 2, alpha: 1.0});
 
         document.getElementById('loading-screen').style.display = 'none';
