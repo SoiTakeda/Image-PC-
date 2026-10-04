@@ -142,6 +142,12 @@
       height: 100%;
       object-fit: cover;
     }
+
+    /* ★ 内カメラ選択時に付与する左右反転クラス ★ */
+    video.mirrored {
+      transform: scaleX(-1);
+    }
+
     .detection-overlay {
       position: absolute;
       top: 10px;
@@ -467,7 +473,7 @@
 
     const webcamElement = document.getElementById('webcam');
     
-    // カメラの起動処理（エラーハンドリングと制約をブラウザ互換仕様に修正）
+    // カメラの起動処理（内カメラ選択時のみ左右反転クラスを適用）
     async function initCamera(facingModeChoice) {
       document.getElementById('camera-select-screen').style.display = 'none';
       document.getElementById('loading-screen').style.display = 'block';
@@ -475,13 +481,11 @@
       try {
         let stream;
         try {
-          // まず指定された向き（外または内）で取得を試みる
           stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: facingModeChoice },
             audio: false
           });
         } catch (err) {
-          // PC等で facingMode が適用できずに失敗した場合のフォールバック
           stream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: false
@@ -491,7 +495,13 @@
         webcamElement.srcObject = stream;
         await webcamElement.play().catch(() => {});
 
-        // MobileNetのロード
+        // ★ 「内カメラ(user)」を選んだ場合、またはフォールバック等で内カメラになった場合に左右反転クラスを付与 ★
+        if (facingModeChoice === 'user') {
+          webcamElement.classList.add('mirrored');
+        } else {
+          webcamElement.classList.remove('mirrored');
+        }
+
         net = await mobilenet.load({version: 2, alpha: 1.0});
 
         document.getElementById('loading-screen').style.display = 'none';
