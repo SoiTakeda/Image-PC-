@@ -280,7 +280,7 @@
     }
     .sample-count { font-size: 0.8rem; color: #0284c7; font-weight: bold; }
 
-    /* ★ サンプル画像サムネイル一覧のスタイル ★ */
+    /* サンプル画像サムネイル一覧のスタイル */
     .thumbnail-container {
       display: flex;
       gap: 6px;
@@ -307,7 +307,6 @@
       height: 100%;
       object-fit: cover;
     }
-    /* サムネイル個別の削除ボタン（×） */
     .thumbnail-delete {
       position: absolute;
       top: 1px;
@@ -465,10 +464,11 @@
 
       <!-- メインアプリコンテンツ -->
       <div id="app-content" style="display: none;">
+        <!-- フェーズタブ表示の変更 -->
         <div class="phase-indicator">
-          <div id="tab-1" class="phase-tab active">① データの準備</div>
-          <div id="tab-2" class="phase-tab">② モデル構築</div>
-          <div id="tab-3" class="phase-tab">③ 検証・しきい値設定</div>
+          <div id="tab-1" class="phase-tab active">データを収集する</div>
+          <div id="tab-2" class="phase-tab">学習させる</div>
+          <div id="tab-3" class="phase-tab">モデルを使う</div>
         </div>
 
         <!-- ① 機械学習フェーズ -->
@@ -476,7 +476,7 @@
           <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">名前の枠をタップしてClass名を変更できます。</p>
           <div id="class-cards-container"></div>
           <button id="add-class-btn" class="btn btn-primary" style="margin-bottom: 8px;">＋ Classを追加 (最大3つ)</button>
-          <button id="to-phase-2-btn" class="btn btn-success" disabled>② モデル構築へ進む</button>
+          <button id="to-phase-2-btn" class="btn btn-success" disabled>学習へ進む</button>
         </div>
 
         <!-- ② モデル構築フェーズ -->
@@ -487,7 +487,7 @@
           <div id="train-progress-bg" style="display:none; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin-bottom: 20px;">
             <div id="train-progress-fill" style="height: 100%; background: #16a34a; width: 0%; transition: width 0.2s;"></div>
           </div>
-          <button id="to-phase-3-btn" class="btn btn-success" style="display: none;">③ 検証・しきい値設定へ</button>
+          <button id="to-phase-3-btn" class="btn btn-success" style="display: none;">モデルを使うへ</button>
         </div>
 
         <!-- ③ 出力フェーズ -->
@@ -515,8 +515,8 @@
   <script>
     let net;
     let customModel; 
-    let trainingData = []; // 各要素: { id, activation, classId, imgSrc }
-    let sampleIdCounter = 0; // サンプルごとのユニークID用
+    let trainingData = []; 
+    let sampleIdCounter = 0; 
     let currentPhase = 1;
     let classes = [
       { id: 0, name: 'Class 1', threshold: 70, confidence: 0 },
@@ -528,7 +528,6 @@
     const webcamElement = document.getElementById('webcam');
     let isMirrored = false;
     
-    // カメラの起動処理
     async function initCamera(facingModeChoice) {
       document.getElementById('camera-select-screen').style.display = 'none';
       document.getElementById('loading-screen').style.display = 'block';
@@ -570,7 +569,6 @@
       }
     }
 
-    // フェーズ1 UI描画
     function renderPhase1() {
       const container = document.getElementById('class-cards-container');
       container.innerHTML = '';
@@ -579,10 +577,8 @@
         const card = document.createElement('div');
         card.className = 'class-card';
         
-        // このクラスに属するサンプルを抽出
         const classSamples = trainingData.filter(item => item.classId === c.id);
 
-        // サムネイル一覧のHTML生成
         let thumbnailsHtml = '';
         if (classSamples.length === 0) {
           thumbnailsHtml = `<div class="thumbnail-empty">まだ画像がありません</div>`;
@@ -638,7 +634,6 @@
       document.getElementById('reset-modal').style.display = 'none';
     }
 
-    // クラス全体のデータをリセット
     function confirmResetClassSamples() {
       if (pendingResetClassId === null) return;
       const classId = pendingResetClassId;
@@ -655,11 +650,10 @@
       closeResetModal(); 
     }
 
-    // ★ 個別のサンプルを1つだけ削除する関数 ★
     function deleteSingleSample(sampleId) {
       const index = trainingData.findIndex(item => item.id === sampleId);
       if (index !== -1) {
-        trainingData[index].activation.dispose(); // テンソルのメモリ解放
+        trainingData[index].activation.dispose();
         trainingData.splice(index, 1);
         renderPhase1();
       }
@@ -688,24 +682,19 @@
       if (c) c.name = name;
     }
 
-    // 撮影してTensorとサムネイル用Canvas画像を両方保存する
     function captureSample(classId) {
-      // 1. TensorFlow用の特徴量抽出
       const activation = tf.tidy(() => net.infer(webcamElement, true));
 
-      // 2. Teachable Machine風のサムネイル画像を生成するためのCanvas処理
       const canvas = document.createElement('canvas');
       canvas.width = 80;
       canvas.height = 80;
       const ctx = canvas.getContext('2d');
 
-      // 内カメラの場合はプレビューに合わせて反転させて切り抜く
       if (isMirrored) {
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
       }
 
-      // ビデオ映像を正方形にクロップして描画
       const videoWidth = webcamElement.videoWidth || 640;
       const videoHeight = webcamElement.videoHeight || 480;
       const size = Math.min(videoWidth, videoHeight);
@@ -715,7 +704,6 @@
       ctx.drawImage(webcamElement, startX, startY, size, size, 0, 0, 80, 80);
       const imgSrc = canvas.toDataURL('image/jpeg', 0.7);
 
-      // 3. データを配列に格納
       const sampleId = sampleIdCounter++;
       trainingData.push({ id: sampleId, activation, classId, imgSrc });
       
@@ -845,7 +833,6 @@
       }
     }
 
-    // リアルタイム推論ループ
     let lastPredictionTime = 0;
 
     async function startPredictionLoop() {
@@ -890,7 +877,7 @@
                 }
               });
             } catch (e) {
-              console.error("推横エラー:", e);
+              console.error("推論エラー:", e);
             }
           }
         }
