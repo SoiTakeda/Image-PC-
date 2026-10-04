@@ -30,7 +30,7 @@
       flex-shrink: 0;
     }
 
-    /* ★ レイアウト制御: スマホは縦並び、iPad/PCの横幅がある時は横並びにするクラス ★ */
+    /* レイアウト制御: スマホは縦並び、iPad/PCの横幅がある時は横並びにするクラス */
     .main-wrapper {
       display: flex;
       flex-direction: column;
@@ -42,7 +42,7 @@
 
     @media (min-width: 768px) {
       .main-wrapper {
-        max-width: 900px;
+        max-width: 960px;
         flex-direction: row;
         align-items: flex-start;
         justify-content: center;
@@ -56,6 +56,12 @@
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
+    }
+
+    @media (min-width: 768px) {
+      .camera-pane {
+        max-width: 520px; /* PCでのカメラエリアの最大幅 */
+      }
     }
 
     /* 右側（またはスマホ下部）の操作用コンテナ */
@@ -115,7 +121,7 @@
     .camera-wrapper {
       position: relative; 
       width: 100%;
-      aspect-ratio: 1 / 1;
+      aspect-ratio: 1 / 1; /* スマホでは正方形 */
       background-color: #000;
       border-radius: 12px;
       overflow: hidden;
@@ -123,6 +129,14 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
       flex-shrink: 0; 
     }
+
+    /* ★ PCなど横幅がある画面ではカメラを横長（4:3）にして黒帯（余白）を解消 ★ */
+    @media (min-width: 768px) {
+      .camera-wrapper {
+        aspect-ratio: 4 / 3; 
+      }
+    }
+
     video {
       width: 100%;
       height: 100%;
@@ -376,7 +390,7 @@
 
     <!-- 右側（または下部）: 操作パネル -->
     <div class="control-pane">
-      <!-- ★ カメラ選択画面 ★ -->
+      <!-- カメラ選択画面 -->
       <div id="camera-select-screen">
         <p style="font-size: 0.9rem; font-weight: bold; color: #0f172a; margin-bottom: 8px;">使用するカメラを選んでください</p>
         <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 15px;">※パソコンの場合は内・外どちらを選んでもWebカメラが起動します</p>
@@ -453,7 +467,7 @@
 
     const webcamElement = document.getElementById('webcam');
     
-    // ★ カメラの起動処理（選択された向きを反映） ★
+    // カメラの起動処理
     async function initCamera(facingModeChoice) {
       document.getElementById('camera-select-screen').style.display = 'none';
       document.getElementById('loading-screen').style.display = 'block';
@@ -462,19 +476,17 @@
         let stream;
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { exact: facingModeChoice }, width: { ideal: 640 }, height: { ideal: 640 } },
+            video: { facingMode: { exact: facingModeChoice }, width: { ideal: 640 }, height: { ideal: 480 } },
             audio: false
           });
         } catch (err) {
-          // 指定した向きが取得できない端末（PCのWebカメラ等）の場合はフォールバック
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 640 } },
+            video: { width: { ideal: 640 }, height: { ideal: 480 } },
             audio: false
           });
         }
         webcamElement.srcObject = stream;
 
-        // MobileNetのロード
         net = await mobilenet.load({version: 2, alpha: 1.0});
 
         document.getElementById('loading-screen').style.display = 'none';
@@ -743,16 +755,6 @@
                   if (fillEl) fillEl.style.width = `${confPct}%`;
                   if (textEl) textEl.innerText = `${confPct}%`;
 
-                  if (confPct >= c.threshold && confPct > maxConfAboveThshed = confPct) { // 修正済み
-                    maxConfAboveThresh = confPct;
-                    detectedClass = c;
-                  }
-                });
-
-                // 変数名ケア
-                classes.forEach((c) => {
-                  const prob = probArray[c.id] || 0;
-                  const confPct = Math.round(prob * 100);
                   if (confPct >= c.threshold && confPct > maxConfAboveThresh) {
                     maxConfAboveThresh = confPct;
                     detectedClass = c;
@@ -764,7 +766,6 @@
                   resultEl.innerText = `${detectedClass.name}`;
                   resultEl.style.color = '#16a34a'; 
                 } else {
-                  // ★ 条件未達成・未検出時の表示を「わかりません」に変更 ★
                   resultEl.innerText = 'わかりません';
                   resultEl.style.color = '#64748b';
                 }
