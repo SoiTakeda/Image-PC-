@@ -44,7 +44,7 @@
     }
 
     .left-pane {
-      flex: 1.2;
+      flex: 1.4;
       display: flex;
       flex-direction: column;
       background: #ffffff;
@@ -103,7 +103,8 @@
     video {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain; /* アップになりすぎないよう全体を表示 */
+      background-color: #0f172a;
       transform: scaleX(-1);
     }
     .detection-overlay {
@@ -439,8 +440,9 @@
       try {
         let stream;
         try {
+          // 広角・標準アスペクト比（16:9）で高解像度取得
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+            video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
             audio: false
           });
         } catch (err) {
@@ -712,7 +714,9 @@
 
                   const fillEl = document.getElementById(`meter-fill-${c.id}`);
                   const textEl = document.getElementById(`conf-text-${c.id}`);
-                  if (fillEl) fillEl.style.width = `${confPct}%`;
+                  if (fillLeft = document.getElementById(`meter-fill-${c.id}`)) {
+                    if (fillEl) fillEl.style.width = `${confPct}%`;
+                  }
                   if (textEl) textEl.innerText = `${confPct}%`;
 
                   if (confPct >= c.threshold && confPct > maxConfAboveThresh) {
