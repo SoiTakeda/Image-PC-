@@ -440,7 +440,8 @@
       <div class="camera-wrapper">
         <video id="webcam" autoplay playsinline muted></video>
         <div id="detection-overlay" class="detection-overlay" style="display: none;">
-          <div class="detection-title">判定結果</div>
+          <!-- 変更箇所：判定結果 → 判別結果 -->
+          <div class="detection-title">判別結果</div>
           <div id="detection-result-text" class="detection-result">わかりません</div>
         </div>
       </div>
@@ -464,7 +465,6 @@
 
       <!-- メインアプリコンテンツ -->
       <div id="app-content" style="display: none;">
-        <!-- フェーズタブ表示の変更 -->
         <div class="phase-indicator">
           <div id="tab-1" class="phase-tab active">データを収集する</div>
           <div id="tab-2" class="phase-tab">学習させる</div>
