@@ -130,7 +130,6 @@
       flex-shrink: 0; 
     }
 
-    /* PCなど横幅がある画面ではカメラを横長（4:3）にして黒帯を解消 */
     @media (min-width: 768px) {
       .camera-wrapper {
         aspect-ratio: 4 / 3; 
@@ -143,7 +142,6 @@
       object-fit: cover;
     }
 
-    /* ★ 内カメラ選択時に付与する左右反転クラス ★ */
     video.mirrored {
       transform: scaleX(-1);
     }
@@ -281,6 +279,61 @@
       background: #f0f9ff;
     }
     .sample-count { font-size: 0.8rem; color: #0284c7; font-weight: bold; }
+
+    /* ★ サンプル画像サムネイル一覧のスタイル ★ */
+    .thumbnail-container {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 6px 2px;
+      margin-top: 8px;
+      min-height: 54px;
+      background: #e2e8f0;
+      border-radius: 6px;
+      align-items: center;
+    }
+    .thumbnail-item {
+      position: relative;
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #cbd5e1;
+      background: #000;
+    }
+    .thumbnail-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    /* サムネイル個別の削除ボタン（×） */
+    .thumbnail-delete {
+      position: absolute;
+      top: 1px;
+      right: 1px;
+      background: rgba(225, 29, 72, 0.9);
+      color: white;
+      font-size: 9px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-weight: bold;
+      line-height: 1;
+    }
+    .thumbnail-delete:hover {
+      background: #e11d48;
+    }
+    .thumbnail-empty {
+      font-size: 0.7rem;
+      color: #64748b;
+      width: 100%;
+      text-align: center;
+    }
 
     /* しきい値スライダー */
     .threshold-control { margin-top: 8px; }
@@ -462,18 +515,20 @@
   <script>
     let net;
     let customModel; 
-    let trainingData = []; 
+    let trainingData = []; // 各要素: { id, activation, classId, imgSrc }
+    let sampleIdCounter = 0; // サンプルごとのユニークID用
     let currentPhase = 1;
     let classes = [
-      { id: 0, name: 'Class 1', count: 0, threshold: 70, confidence: 0 },
-      { id: 1, name: 'Class 2', count: 0, threshold: 70, confidence: 0 }
+      { id: 0, name: 'Class 1', threshold: 70, confidence: 0 },
+      { id: 1, name: 'Class 2', threshold: 70, confidence: 0 }
     ];
     let captureInterval = null; 
     let pendingResetClassId = null;
 
     const webcamElement = document.getElementById('webcam');
+    let isMirrored = false;
     
-    // カメラの起動処理（内カメラ選択時のみ左右反転クラスを適用）
+    // カメラの起動処理
     async function initCamera(facingModeChoice) {
       document.getElementById('camera-select-screen').style.display = 'none';
       document.getElementById('loading-screen').style.display = 'block';
@@ -495,10 +550,11 @@
         webcamElement.srcObject = stream;
         await webcamElement.play().catch(() => {});
 
-        // ★ 「内カメラ(user)」を選んだ場合、またはフォールバック等で内カメラになった場合に左右反転クラスを付与 ★
         if (facingModeChoice === 'user') {
+          isMirrored = true;
           webcamElement.classList.add('mirrored');
         } else {
+          isMirrored = false;
           webcamElement.classList.remove('mirrored');
         }
 
@@ -523,10 +579,28 @@
         const card = document.createElement('div');
         card.className = 'class-card';
         
+        // このクラスに属するサンプルを抽出
+        const classSamples = trainingData.filter(item => item.classId === c.id);
+
+        // サムネイル一覧のHTML生成
+        let thumbnailsHtml = '';
+        if (classSamples.length === 0) {
+          thumbnailsHtml = `<div class="thumbnail-empty">まだ画像がありません</div>`;
+        } else {
+          classSamples.forEach(sample => {
+            thumbnailsHtml += `
+              <div class="thumbnail-item">
+                <img src="${sample.imgSrc}" alt="sample">
+                <div class="thumbnail-delete" onclick="deleteSingleSample(${sample.id})">×</div>
+              </div>
+            `;
+          });
+        }
+
         card.innerHTML = `
           <div class="class-header">
             <input type="text" class="class-name-input" value="${c.name}" oninput="updateClassName(${c.id}, this.value)">
-            <span class="sample-count" id="count-${c.id}">枚数: ${c.count}枚</span>
+            <span class="sample-count" id="count-${c.id}">枚数: ${classSamples.length}枚</span>
           </div>
           <div class="action-buttons">
             <div class="btn-capture" 
@@ -538,8 +612,11 @@
               長押しで連続撮影
             </div>
             <div class="btn-retake" onclick="showResetModal(${c.id})">
-              撮り直す
+              すべて撮り直す
             </div>
+          </div>
+          <div class="thumbnail-container" id="thumbnails-${c.id}">
+            ${thumbnailsHtml}
           </div>
         `;
         container.appendChild(card);
@@ -561,6 +638,7 @@
       document.getElementById('reset-modal').style.display = 'none';
     }
 
+    // クラス全体のデータをリセット
     function confirmResetClassSamples() {
       if (pendingResetClassId === null) return;
       const classId = pendingResetClassId;
@@ -573,14 +651,18 @@
 
       trainingData = trainingData.filter(item => item.classId !== classId);
 
-      const c = classes.find(item => item.id === classId);
-      if (c) {
-        c.count = 0;
-        document.getElementById(`count-${classId}`).innerText = `枚数: 0枚`;
-      }
-
-      updateToPhase2Btn();
+      renderPhase1();
       closeResetModal(); 
+    }
+
+    // ★ 個別のサンプルを1つだけ削除する関数 ★
+    function deleteSingleSample(sampleId) {
+      const index = trainingData.findIndex(item => item.id === sampleId);
+      if (index !== -1) {
+        trainingData[index].activation.dispose(); // テンソルのメモリ解放
+        trainingData.splice(index, 1);
+        renderPhase1();
+      }
     }
 
     function startContinuousCapture(classId, event) {
@@ -606,27 +688,49 @@
       if (c) c.name = name;
     }
 
+    // 撮影してTensorとサムネイル用Canvas画像を両方保存する
     function captureSample(classId) {
+      // 1. TensorFlow用の特徴量抽出
       const activation = tf.tidy(() => net.infer(webcamElement, true));
-      trainingData.push({ activation, classId });
-      
-      const c = classes.find(item => item.id === classId);
-      if (c) {
-        c.count++;
-        document.getElementById(`count-${classId}`).innerText = `枚数: ${c.count}枚`;
+
+      // 2. Teachable Machine風のサムネイル画像を生成するためのCanvas処理
+      const canvas = document.createElement('canvas');
+      canvas.width = 80;
+      canvas.height = 80;
+      const ctx = canvas.getContext('2d');
+
+      // 内カメラの場合はプレビューに合わせて反転させて切り抜く
+      if (isMirrored) {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
       }
+
+      // ビデオ映像を正方形にクロップして描画
+      const videoWidth = webcamElement.videoWidth || 640;
+      const videoHeight = webcamElement.videoHeight || 480;
+      const size = Math.min(videoWidth, videoHeight);
+      const startX = (videoWidth - size) / 2;
+      const startY = (videoHeight - size) / 2;
+
+      ctx.drawImage(webcamElement, startX, startY, size, size, 0, 0, 80, 80);
+      const imgSrc = canvas.toDataURL('image/jpeg', 0.7);
+
+      // 3. データを配列に格納
+      const sampleId = sampleIdCounter++;
+      trainingData.push({ id: sampleId, activation, classId, imgSrc });
       
-      updateToPhase2Btn();
+      renderPhase1();
     }
 
     function updateToPhase2Btn() {
-      const ready = classes.length >= 2 && classes.every(item => item.count > 0);
+      const counts = classes.map(c => trainingData.filter(item => item.classId === c.id).length);
+      const ready = classes.length >= 2 && counts.every(count => count > 0);
       document.getElementById('to-phase-2-btn').disabled = !ready;
     }
 
     document.getElementById('add-class-btn').addEventListener('click', () => {
       if (classes.length < 3) {
-        classes.push({ id: classes.length, name: `Class ${classes.length + 1}`, count: 0, threshold: 70, confidence: 0 });
+        classes.push({ id: classes.length, name: `Class ${classes.length + 1}`, threshold: 70, confidence: 0 });
         renderPhase1();
       }
     });
@@ -786,7 +890,7 @@
                 }
               });
             } catch (e) {
-              console.error("推論エラー:", e);
+              console.error("推横エラー:", e);
             }
           }
         }
