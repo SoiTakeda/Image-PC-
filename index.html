@@ -1,49 +1,65 @@
-<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+<meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Image Recognition AI Maker</title>
-  <!-- TensorFlow.js と MobileNet の読み込み -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #f1f5f9;
-      color: #334155;
-      display: flex;
-      flex-direction: column;
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PC用 画像認識AIメーカー</title>
+<!-- TensorFlow.js と MobileNet の読み込み -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0"></script>
+@@ -15,138 +15,153 @@
+color: #334155;
+display: flex;
+flex-direction: column;
       align-items: center;
       height: 100dvh; 
       overflow: hidden; 
       padding: 4px 10px 10px 10px; 
-    }
+      height: 100vh;
+      overflow: hidden;
+      padding: 16px;
+}
 
-    h1 { 
+h1 { 
       font-size: 1.1rem; 
       margin-bottom: 4px; 
-      color: #0284c7; 
+      font-size: 1.5rem; 
+      margin-bottom: 12px; 
+color: #0284c7; 
       text-align: center; 
-      letter-spacing: 0.5px;
-      flex-shrink: 0;
-    }
+      text-align: left; 
+letter-spacing: 0.5px;
+flex-shrink: 0;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+}
 
     /* フェーズ切替ナビ */
     .phase-indicator {
-      display: flex;
+    .workspace {
+display: flex;
       gap: 4px;
       margin-bottom: 6px;
-      width: 100%;
+      gap: 20px;
+      flex: 1;
+      overflow: hidden;
+      max-width: 1400px;
+      margin: 0 auto;
+width: 100%;
       max-width: 480px;
       flex-shrink: 0;
-    }
+}
     
     /* タブを1行に収めるための微調整 */
     .phase-tab {
       flex: 1;
-      display: flex;
+
+    .left-pane {
+      flex: 1.2;
+display: flex;
       align-items: center;        
       justify-content: center;    
       text-align: center;
@@ -55,7 +71,13 @@
       background-color: #e2e8f0;
       color: #64748b;
       font-weight: bold;
-    }
+      flex-direction: column;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      overflow: hidden;
+}
     .phase-tab.active { background-color: #0284c7; color: #ffffff; }
 
     /* メインコンテナ */
@@ -66,258 +88,384 @@
       border-radius: 12px;
       padding: 10px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      display: flex;
-      flex-direction: column;
+    .right-pane {
       flex: 1;
-      overflow: hidden;
-    }
+display: flex;
+flex-direction: column;
+      flex: 1;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+overflow: hidden;
+}
 
     #app-content {
-      display: flex;
+    .phase-indicator {
+display: flex;
       flex-direction: column;
-      flex: 1;
-      overflow: hidden;
+      gap: 8px;
+      margin-bottom: 16px;
+      width: 100%;
+      flex-shrink: 0;
     }
+    
+    .phase-tab {
+flex: 1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;         
+      justify-content: center;     
+      text-align: center;
+      padding: 10px 12px;            
+      font-size: 0.85rem;          
+      border-radius: 8px;
+      background-color: #e2e8f0;
+      color: #64748b;
+      font-weight: bold;
+      transition: all 0.2s;
+}
+    .phase-tab.active { background-color: #0284c7; color: #ffffff; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3); }
 
     /* カメラエリア */
-    .camera-wrapper {
-      position: relative; 
-      width: 100%;
+.camera-wrapper {
+position: relative; 
+width: 100%;
       aspect-ratio: 1 / 1;
-      background-color: #000;
+      flex: 1;
+background-color: #000;
       border-radius: 8px;
-      overflow: hidden;
+      border-radius: 12px;
+overflow: hidden;
       margin-bottom: 10px;
       flex-shrink: 0; 
-    }
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .detection-overlay {
-      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+}
+video {
+width: 100%;
+height: 100%;
+object-fit: cover;
+      transform: scaleX(-1);
+}
+.detection-overlay {
+position: absolute;
       top: 10px;
       left: 10px;
       right: 10px;
       background: rgba(255, 255, 255, 0.9);
-      border: 2px solid #0284c7;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      background: rgba(255, 255, 255, 0.92);
+border: 2px solid #0284c7;
       border-radius: 8px;
       padding: 8px;
-      text-align: center;
+      border-radius: 12px;
+      padding: 12px;
+text-align: center;
       backdrop-filter: blur(4px);
-      z-index: 10;
-    }
+      backdrop-filter: blur(6px);
+z-index: 10;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
     .detection-title { font-size: 0.75rem; color: #64748b; }
     .detection-result { font-size: 1.2rem; font-weight: bold; color: #16a34a; margin-top: 2px; }
+    .detection-title { font-size: 0.85rem; color: #64748b; font-weight: bold; }
+    .detection-result { font-size: 1.5rem; font-weight: bold; color: #16a34a; margin-top: 4px; }
 
     /* 操作エリア */
-    .section { 
-      display: none; 
+    .section-container {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+      display: flex;
+      flex-direction: column;
+    }
+.section { 
+display: none; 
       flex: 1; 
       overflow-y: auto; 
       padding-bottom: 20px; 
       padding-right: 4px; 
-    }
+      flex-direction: column;
+      flex: 1;
+}
     .section.active { display: block; }
+    .section.active { display: flex; }
 
     /* 共通ボタン設定 */
-    .btn {
-      width: 100%;
+.btn {
+width: 100%;
       padding: 10px;
-      border: none;
+      padding: 12px;
+border: none;
       border-radius: 8px;
-      font-weight: bold;
+      border-radius: 10px;
+font-weight: bold;
       font-size: 0.95rem;
-      cursor: pointer;
+      font-size: 1rem;
+cursor: pointer;
       margin-top: 8px;
-      display: block;
-      text-align: center;
+      margin-top: 10px;
+display: block;
+text-align: center;
       box-shadow: 0 4px 6px rgba(0,0,0,0.15);
       transition: all 0.1s ease-out;
-    }
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: all 0.15s ease-out;
+}
 
-    .btn:active:not(:disabled) {
+.btn:active:not(:disabled) {
       transform: scale(0.95);
       box-shadow: 0 1px 2px rgba(0,0,0,0.15);
-    }
+      transform: scale(0.98);
+      box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+}
 
-    .btn-primary { background-color: #0284c7; color: white; }
+.btn-primary { background-color: #0284c7; color: white; }
     .btn-primary:active:not(:disabled) { background-color: #0369a1; }
-    
-    .btn-success { background-color: #16a34a; color: white; }
+    .btn-primary:hover:not(:disabled) { background-color: #0369a1; }
+
+.btn-success { background-color: #16a34a; color: white; }
     .btn-success:active:not(:disabled) { background-color: #15803d; }
-    
-    .btn:disabled { 
-      background-color: #cbd5e1; 
-      color: #64748b; 
-      box-shadow: none; 
-      cursor: not-allowed; 
-      transform: none; 
-    }
+    .btn-success:hover:not(:disabled) { background-color: #15803d; }
+
+.btn:disabled { 
+background-color: #cbd5e1; 
+@@ -156,10 +171,9 @@
+transform: none; 
+}
 
     /* 各クラスのアクションボタン */
-    .action-buttons {
-      display: flex;
+.action-buttons {
+display: flex;
       gap: 8px;
-      margin-top: 10px;
-      justify-content: center;
-    }
-
-    .btn-capture { 
-      background-color: #e11d48; 
-      color: white; 
-      user-select: none; 
-      -webkit-user-select: none;
+      gap: 10px;
+margin-top: 10px;
+justify-content: center;
+}
+@@ -169,104 +183,125 @@
+color: white; 
+user-select: none; 
+-webkit-user-select: none;
       -webkit-touch-callout: none;
       padding: 8px 20px;
       font-size: 0.85rem;
-      font-weight: bold;
-      border-radius: 20px; 
-      box-shadow: 0 4px 6px rgba(225, 29, 72, 0.3);
-      transition: all 0.1s ease-out;
-      cursor: pointer;
-    }
+      padding: 10px 20px;
+      font-size: 0.9rem;
+font-weight: bold;
+border-radius: 20px; 
+box-shadow: 0 4px 6px rgba(225, 29, 72, 0.3);
+transition: all 0.1s ease-out;
+cursor: pointer;
+      flex: 2;
+      text-align: center;
+}
     .btn-capture:active {
       transform: scale(0.92);
       background-color: #be123c;
     }
+    .btn-capture:hover { background-color: #be123c; }
+    .btn-capture:active { transform: scale(0.95); }
 
-    .btn-retake {
-      background-color: #94a3b8;
-      color: white;
-      user-select: none;
+.btn-retake {
+background-color: #94a3b8;
+color: white;
+user-select: none;
       padding: 8px 16px;
       font-size: 0.85rem;
-      font-weight: bold;
-      border-radius: 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      transition: all 0.1s ease-out;
-      cursor: pointer;
-    }
+      padding: 10px 16px;
+      font-size: 0.9rem;
+font-weight: bold;
+border-radius: 20px;
+box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+transition: all 0.1s ease-out;
+cursor: pointer;
+      flex: 1;
+      text-align: center;
+}
     .btn-retake:active {
       transform: scale(0.92);
       background-color: #64748b;
     }
+    .btn-retake:hover { background-color: #64748b; }
+    .btn-retake:active { transform: scale(0.95); }
 
     /* Classコントロール */
-    .class-card {
-      background-color: #f8fafc;
+.class-card {
+background-color: #f8fafc;
       border-radius: 8px;
       padding: 10px;
       margin-bottom: 10px;
-      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+border: 1px solid #e2e8f0;
+      transition: border-color 0.2s;
     }
-    .class-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .class-card:hover {
+      border-color: #cbd5e1;
+}
+.class-header {
+display: flex;
+justify-content: space-between;
+align-items: center;
       margin-bottom: 6px;
-    }
-    .class-name-input {
-      background: #ffffff;
+      margin-bottom: 8px;
+}
+.class-name-input {
+background: #ffffff;
       border: 1px dashed #94a3b8;
       border-radius: 4px;
-      color: #0f172a;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+color: #0f172a;
       font-size: 0.95rem;
-      font-weight: bold;
+      font-size: 1rem;
+font-weight: bold;
       padding: 4px 8px;
       width: 60%;
-    }
-    .class-name-input:focus {
-      outline: none;
-      border-color: #0284c7;
-      background: #f0f9ff;
-    }
+      padding: 6px 10px;
+      width: 65%;
+}
+.class-name-input:focus {
+outline: none;
+border-color: #0284c7;
+background: #f0f9ff;
+}
     .sample-count { font-size: 0.8rem; color: #0284c7; font-weight: bold; }
+    .sample-count { font-size: 0.9rem; color: #0284c7; font-weight: bold; }
 
     /* しきい値スライダー */
     .threshold-control { margin-top: 8px; }
-    .slider-header {
-      display: flex;
-      justify-content: space-between;
+    .threshold-control { margin-top: 10px; }
+.slider-header {
+display: flex;
+justify-content: space-between;
       font-size: 0.8rem;
-      color: #64748b;
-    }
-    input[type="range"] {
-      width: 100%;
-      accent-color: #0284c7;
+      font-size: 0.85rem;
+color: #64748b;
+}
+input[type="range"] {
+width: 100%;
+accent-color: #0284c7;
       margin-top: 4px;
-    }
+      margin-top: 6px;
+      cursor: pointer;
+}
 
     /* 確信度ゲージ */
-    .meter-bar-bg {
+.meter-bar-bg {
       height: 12px;
       background: #cbd5e1;
       border-radius: 6px;
-      overflow: hidden;
+      height: 14px;
+      background: #e2e8f0;
+      border-radius: 7px;
+overflow: hidden;
       margin-top: 6px;
-    }
-    .meter-bar-fill {
-      height: 100%;
-      background: #38bdf8;
-      width: 0%;
+      margin-top: 8px;
+}
+.meter-bar-fill {
+height: 100%;
+background: #38bdf8;
+width: 0%;
       transition: width 0.3s ease-out; 
-    }
+      transition: width 0.2s ease-out; 
+}
 
-    #loading-screen {
-      text-align: center;
-      padding: 20px;
-      color: #64748b;
-    }
-
-    /* ★ 独自確認モーダルのデザイン ★ */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.6);
-      display: none;
+#loading-screen {
+      display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 1000;
-      backdrop-filter: blur(2px);
+text-align: center;
+      padding: 20px;
+      height: 100%;
+      font-size: 1.1rem;
+color: #64748b;
+      font-weight: bold;
+      gap: 15px;
     }
-    .modal-content {
-      background: #ffffff;
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e2e8f0;
+      border-top: 4px solid #0284c7;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+}
+
+    /* ★ 独自確認モーダルのデザイン ★ */
+.modal-overlay {
+position: fixed;
+top: 0; left: 0; right: 0; bottom: 0;
+@@ -275,27 +310,27 @@
+justify-content: center;
+align-items: center;
+z-index: 1000;
+      backdrop-filter: blur(2px);
+      backdrop-filter: blur(3px);
+}
+.modal-content {
+background: #ffffff;
       padding: 24px;
-      border-radius: 16px;
+      padding: 28px;
+border-radius: 16px;
       width: 90%;
       max-width: 320px;
-      text-align: center;
+      width: 100%;
+      max-width: 380px;
+text-align: center;
       box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    }
-    .modal-title {
+      box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+}
+.modal-title {
       font-size: 1.1rem;
-      font-weight: bold;
-      color: #0f172a;
+      font-size: 1.2rem;
+font-weight: bold;
+color: #0f172a;
       margin-bottom: 8px;
-    }
-    .modal-desc {
+      margin-bottom: 10px;
+}
+.modal-desc {
       font-size: 0.9rem;
-      color: #64748b;
+      font-size: 0.95rem;
+color: #64748b;
       margin-bottom: 20px;
-    }
-    .modal-actions {
-      display: flex;
-      gap: 12px;
-    }
-    .btn-modal-cancel {
-      flex: 1;
-      background-color: #94a3b8;
-      color: white;
-      margin-top: 0;
-    }
-    .btn-modal-delete {
-      flex: 1;
-      background-color: #e11d48;
-      color: white;
-      margin-top: 0;
-    }
-  </style>
+      margin-bottom: 24px;
+}
+.modal-actions {
+display: flex;
+@@ -307,68 +342,74 @@
+color: white;
+margin-top: 0;
+}
+    .btn-modal-cancel:hover { background-color: #64748b; }
+.btn-modal-delete {
+flex: 1;
+background-color: #e11d48;
+color: white;
+margin-top: 0;
+}
+    .btn-modal-delete:hover { background-color: #be123c; }
+</style>
 </head>
 <body>
 
   <h1>Image Recognition AI Maker</h1>
+  <h1>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    Image Recognition AI Maker <span style="font-size: 0.8rem; background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 20px; font-weight: normal;">PC版</span>
+  </h1>
 
   <div class="phase-indicator">
     <div id="tab-1" class="phase-tab active">① データの準備</div>
@@ -329,16 +477,25 @@
     <div id="loading-screen">
       AIモデル（MobileNet）を準備中...<br>少々お待ちください。
     </div>
+  <div class="workspace">
+    
+    <div class="left-pane">
+      <div id="loading-screen">
+        <div class="spinner"></div>
+        AIモデル（MobileNet）を準備中...<br>少々お待ちください。
+      </div>
 
     <!-- カメラ表示エリア -->
     <div id="app-content" style="display: none;">
       <div class="camera-wrapper">
-        <video id="webcam" autoplay playsinline muted></video>
-        <div id="detection-overlay" class="detection-overlay" style="display: none;">
-          <div class="detection-title">判定結果</div>
-          <div id="detection-result-text" class="detection-result">検出なし</div>
-        </div>
-      </div>
+      <div id="app-content" class="camera-wrapper" style="display: none;">
+<video id="webcam" autoplay playsinline muted></video>
+<div id="detection-overlay" class="detection-overlay" style="display: none;">
+<div class="detection-title">判定結果</div>
+<div id="detection-result-text" class="detection-result">検出なし</div>
+</div>
+</div>
+    </div>
 
       <!-- ① 機械学習フェーズ -->
       <div id="phase-1" class="section active">
@@ -346,7 +503,12 @@
         <div id="class-cards-container"></div>
         <button id="add-class-btn" class="btn btn-primary" style="margin-bottom: 8px;">＋ Classを追加 (最大3つ)</button>
         <button id="to-phase-2-btn" class="btn btn-success" disabled>② モデル構築へ進む</button>
-      </div>
+    <div class="right-pane">
+      <div class="phase-indicator">
+        <div id="tab-1" class="phase-tab active">① データの準備</div>
+        <div id="tab-2" class="phase-tab">② モデル構築</div>
+        <div id="tab-3" class="phase-tab">③ 検証・しきい値</div>
+</div>
 
       <!-- ② モデル構築フェーズ -->
       <div id="phase-2" class="section">
@@ -355,7 +517,13 @@
         </p>
         <div id="train-progress-bg" style="display:none; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin-bottom: 20px;">
           <div id="train-progress-fill" style="height: 100%; background: #16a34a; width: 0%; transition: width 0.2s;"></div>
-        </div>
+      <div class="section-container">
+        <div id="phase-1" class="section active">
+          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">クラス名を入力し、カメラに向かって「長押しで連続撮影」ボタンを押してサンプル画像を集めてください。（各クラス1枚以上必要・最大3クラス）</p>
+          <div id="class-cards-container"></div>
+          <button id="add-class-btn" class="btn btn-primary" style="margin-bottom: 12px;">＋ Classを追加 (最大3つ)</button>
+          <button id="to-phase-2-btn" class="btn btn-success" disabled>② モデル構築へ進む</button>
+</div>
         <button id="to-phase-3-btn" class="btn btn-success" style="display: none;">③ 検証・しきい値設定へ</button>
       </div>
 
@@ -364,354 +532,142 @@
         <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 8px;">各Classのしきい値(%)を調整してください：</p>
         <div id="threshold-controls-container"></div>
         <button id="reset-btn" class="btn btn-primary" style="margin-top: 15px;">最初からやり直す</button>
-      </div>
-    </div>
-  </div>
+        <div id="phase-2" class="section" style="justify-content: center; align-items: center; text-align: center;">
+          <p id="phase-2-text" style="font-size: 1.1rem; color: #334155; font-weight: bold; margin-bottom: 20px;">
+            構築の準備ができました。
+          </p>
+          <div id="train-progress-bg" style="display:none; width: 100%; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden; margin-bottom: 24px;">
+            <div id="train-progress-fill" style="height: 100%; background: #16a34a; width: 0%; transition: width 0.2s;"></div>
+          </div>
+          <button id="to-phase-3-btn" class="btn btn-success" style="display: none; max-width: 300px;">③ 検証・しきい値設定へ</button>
+        </div>
+
+        <div id="phase-3" class="section">
+          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">各Classの判定しきい値(%)を調整しながら、リアルタイム認識精度を確認できます。</p>
+          <div id="threshold-controls-container"></div>
+          <button id="reset-btn" class="btn btn-primary" style="margin-top: 20px;">最初からやり直す</button>
+        </div>
+</div>
+</div>
+</div>
 
   <!-- ★ 独自確認モーダルのHTML ★ -->
-  <div id="reset-modal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-title">データの削除</div>
-      <div class="modal-desc">「<span id="modal-class-name"></span>」の画像をすべて削除して撮り直しますか？</div>
-      <div class="modal-actions">
-        <div class="btn btn-modal-cancel" onclick="closeResetModal()">キャンセル</div>
-        <div class="btn btn-modal-delete" onclick="confirmResetClassSamples()">削除する</div>
-      </div>
-    </div>
-  </div>
+<div id="reset-modal" class="modal-overlay">
+<div class="modal-content">
+<div class="modal-title">データの削除</div>
+@@ -381,7 +422,6 @@ <h1>Image Recognition AI Maker</h1>
+</div>
 
-  <script>
+<script>
     // グローバル状態
-    let net;
-    let customModel; 
-    let trainingData = []; 
-    let currentPhase = 1;
-    let classes = [
-      { id: 0, name: 'Class 1', count: 0, threshold: 70, confidence: 0 },
-      { id: 1, name: 'Class 2', count: 0, threshold: 70, confidence: 0 }
-    ];
-    let captureInterval = null; 
+let net;
+let customModel; 
+let trainingData = []; 
+@@ -391,28 +431,26 @@ <h1>Image Recognition AI Maker</h1>
+{ id: 1, name: 'Class 2', count: 0, threshold: 70, confidence: 0 }
+];
+let captureInterval = null; 
     let pendingResetClassId = null; // 削除待ちのクラスID
+    let pendingResetClassId = null;
 
-    const webcamElement = document.getElementById('webcam');
-    
+const webcamElement = document.getElementById('webcam');
+
     // 初期化関数
-    async function init() {
-      try {
-        let stream;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
+async function init() {
+try {
+let stream;
+try {
+stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: { exact: 'environment' }, width: { ideal: 640 }, height: { ideal: 640 } },
-            audio: false
-          });
-        } catch (err) {
-          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+audio: false
+});
+} catch (err) {
+stream = await navigator.mediaDevices.getUserMedia({
             video: { width: { ideal: 640 }, height: { ideal: 640 } },
-            audio: false
-          });
-        }
-        webcamElement.srcObject = stream;
+            video: true,
+audio: false
+});
+}
+webcamElement.srcObject = stream;
 
         // MobileNetのロード
-        net = await mobilenet.load({version: 2, alpha: 1.0});
+net = await mobilenet.load({version: 2, alpha: 1.0});
 
-        document.getElementById('loading-screen').style.display = 'none';
-        document.getElementById('app-content').style.display = 'flex';
-
-        renderPhase1();
-      } catch (e) {
-        alert('カメラの起動またはモデルのロードに失敗しました: ' + e.message);
-      }
-    }
+document.getElementById('loading-screen').style.display = 'none';
+@@ -424,7 +462,6 @@ <h1>Image Recognition AI Maker</h1>
+}
+}
 
     // フェーズ1 UI描画
-    function renderPhase1() {
-      const container = document.getElementById('class-cards-container');
-      container.innerHTML = '';
-
-      classes.forEach((c) => {
-        const card = document.createElement('div');
-        card.className = 'class-card';
-        
-        card.innerHTML = `
-          <div class="class-header">
-            <input type="text" class="class-name-input" value="${c.name}" oninput="updateClassName(${c.id}, this.value)">
-            <span class="sample-count" id="count-${c.id}">枚数: ${c.count}枚</span>
-          </div>
-          <div class="action-buttons">
-            <div class="btn-capture" 
-              onmousedown="startContinuousCapture(${c.id}, event)" 
-              onmouseup="stopContinuousCapture()" 
-              onmouseleave="stopContinuousCapture()"
-              ontouchstart="startContinuousCapture(${c.id}, event)" 
-              ontouchend="stopContinuousCapture()">
-              長押しで連続撮影
-            </div>
-            <div class="btn-retake" onclick="showResetModal(${c.id})">
-              撮り直す
-            </div>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-
-      document.getElementById('add-class-btn').style.display = classes.length >= 3 ? 'none' : 'block';
-      updateToPhase2Btn();
-    }
+function renderPhase1() {
+const container = document.getElementById('class-cards-container');
+container.innerHTML = '';
+@@ -459,26 +496,22 @@ <h1>Image Recognition AI Maker</h1>
+updateToPhase2Btn();
+}
 
     // ★ モーダル表示処理 ★
-    function showResetModal(classId) {
-      pendingResetClassId = classId;
-      const c = classes.find(item => item.id === classId);
-      document.getElementById('modal-class-name').innerText = c.name;
-      document.getElementById('reset-modal').style.display = 'flex';
-    }
+function showResetModal(classId) {
+pendingResetClassId = classId;
+const c = classes.find(item => item.id === classId);
+document.getElementById('modal-class-name').innerText = c.name;
+document.getElementById('reset-modal').style.display = 'flex';
+}
 
     // ★ モーダル非表示処理 ★
-    function closeResetModal() {
-      pendingResetClassId = null;
-      document.getElementById('reset-modal').style.display = 'none';
-    }
+function closeResetModal() {
+pendingResetClassId = null;
+document.getElementById('reset-modal').style.display = 'none';
+}
 
     // ★ 削除確定時の処理 ★
-    function confirmResetClassSamples() {
-      if (pendingResetClassId === null) return;
-      const classId = pendingResetClassId;
+function confirmResetClassSamples() {
+if (pendingResetClassId === null) return;
+const classId = pendingResetClassId;
 
       // メモリ解放と配列からの削除
-      trainingData.forEach(item => {
-        if (item.classId === classId) {
-          item.activation.dispose();
-        }
-      });
-
-      trainingData = trainingData.filter(item => item.classId !== classId);
-
-      const c = classes.find(item => item.id === classId);
-      if (c) {
-        c.count = 0;
-        document.getElementById(`count-${classId}`).innerText = `枚数: 0枚`;
-      }
-
-      updateToPhase2Btn();
-      closeResetModal(); 
-    }
+trainingData.forEach(item => {
+if (item.classId === classId) {
+item.activation.dispose();
+@@ -497,7 +530,6 @@ <h1>Image Recognition AI Maker</h1>
+closeResetModal(); 
+}
 
     // 連続撮影の開始
-    function startContinuousCapture(classId, event) {
-      if (event && event.cancelable) event.preventDefault(); 
-      if (captureInterval) return;
-
-      captureSample(classId);
-
-      captureInterval = setInterval(() => {
-        captureSample(classId);
-      }, 100);
-    }
+function startContinuousCapture(classId, event) {
+if (event && event.cancelable) event.preventDefault(); 
+if (captureInterval) return;
+@@ -509,7 +541,6 @@ <h1>Image Recognition AI Maker</h1>
+}, 100);
+}
 
     // 連続撮影の終了
-    function stopContinuousCapture() {
-      if (captureInterval) {
-        clearInterval(captureInterval);
-        captureInterval = null;
-      }
-    }
-
-    function updateClassName(id, name) {
-      const c = classes.find(item => item.id === id);
-      if (c) c.name = name;
-    }
-
-    function captureSample(classId) {
-      const activation = tf.tidy(() => net.infer(webcamElement, true));
-      trainingData.push({ activation, classId });
-      
-      const c = classes.find(item => item.id === classId);
-      if (c) {
-        c.count++;
-        document.getElementById(`count-${classId}`).innerText = `枚数: ${c.count}枚`;
-      }
-      
-      updateToPhase2Btn();
-    }
-
-    function updateToPhase2Btn() {
-      const ready = classes.length >= 2 && classes.every(item => item.count > 0);
-      document.getElementById('to-phase-2-btn').disabled = !ready;
-    }
-
-    document.getElementById('add-class-btn').addEventListener('click', () => {
-      if (classes.length < 3) {
-        classes.push({ id: classes.length, name: `Class ${classes.length + 1}`, count: 0, threshold: 70, confidence: 0 });
-        renderPhase1();
-      }
-    });
-
-    document.getElementById('to-phase-2-btn').addEventListener('click', async () => {
-      switchPhase(2);
-      await trainModel();
-    });
-
-    async function trainModel() {
-      const phase2Text = document.getElementById('phase-2-text');
-      const progressBg = document.getElementById('train-progress-bg');
-      const progressFill = document.getElementById('train-progress-fill');
-      const phase3Btn = document.getElementById('to-phase-3-btn');
-      
-      phase2Text.innerText = "AIを学習中... (0%)";
-      progressBg.style.display = 'block';
-      progressFill.style.width = '0%';
-
-      const xTensors = trainingData.map(d => d.activation);
-      const yTensors = trainingData.map(d => tf.oneHot(tf.tensor1d([d.classId], 'int32'), classes.length));
-
-      const xs = tf.concat(xTensors, 0);
-      const ys = tf.concat(yTensors, 0);
-
-      const featureShape = net.infer(webcamElement, true).shape.slice(1);
-
-      customModel = tf.sequential({
-        layers: [
-          tf.layers.dense({inputShape: featureShape, units: 100, activation: 'relu'}),
-          tf.layers.dense({units: classes.length, activation: 'softmax'})
-        ]
-      });
-
-      customModel.compile({
-        optimizer: tf.train.adam(0.0001),
-        loss: 'categoricalCrossentropy',
-        metrics: ['accuracy']
-      });
-
-      const epochs = 20; 
-      await customModel.fit(xs, ys, {
-        epochs: epochs,
-        callbacks: {
-          onEpochEnd: async (epoch, logs) => {
-            const percent = Math.round(((epoch + 1) / epochs) * 100);
-            phase2Text.innerText = `AIを学習中... (${percent}%)`;
-            progressFill.style.width = `${percent}%`;
-            await tf.nextFrame(); 
-          }
-        }
-      });
-
-      phase2Text.innerText = "学習が完了しました！";
-      phase3Btn.style.display = 'block';
-
-      xs.dispose();
-      ys.dispose();
-      yTensors.forEach(t => t.dispose());
-    }
-
-    document.getElementById('to-phase-3-btn').addEventListener('click', () => {
-      switchPhase(3);
-      startPredictionLoop();
-    });
-
-    function switchPhase(phase) {
-      currentPhase = phase;
-      for (let i = 1; i <= 3; i++) {
-        document.getElementById(`tab-${i}`).classList.toggle('active', i === phase);
-        document.getElementById(`phase-${i}`).classList.toggle('active', i === phase);
-      }
-      document.getElementById('detection-overlay').style.display = (phase === 3) ? 'block' : 'none';
-      if (phase === 3) renderPhase3();
-    }
-
-    document.getElementById('reset-btn').addEventListener('click', () => location.reload());
-
-    function renderPhase3() {
-      const container = document.getElementById('threshold-controls-container');
-      container.innerHTML = '';
-
-      classes.forEach((c) => {
-        const card = document.createElement('div');
-        card.className = 'class-card';
-        card.innerHTML = `
-          <div class="class-header">
-            <strong>${c.name}</strong>
+function stopContinuousCapture() {
+if (captureInterval) {
+clearInterval(captureInterval);
+@@ -631,7 +662,7 @@ <h1>Image Recognition AI Maker</h1>
+card.innerHTML = `
+         <div class="class-header">
+           <strong>${c.name}</strong>
             <span id="conf-text-${c.id}" style="font-size:0.85rem; color:#0284c7; font-weight:bold;">0%</span>
-          </div>
-          <div class="meter-bar-bg">
-            <div id="meter-fill-${c.id}" class="meter-bar-fill"></div>
-          </div>
-          <div class="threshold-control">
-            <div class="slider-header">
-              <span>判定しきい値</span>
-              <span id="thresh-val-${c.id}">${c.threshold}%</span>
-            </div>
-            <input type="range" min="0" max="100" value="${c.threshold}" 
-              oninput="updateThreshold(${c.id}, this.value)">
-          </div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    function updateThreshold(classId, val) {
-      const c = classes.find(item => item.id === classId);
-      if (c) {
-        c.threshold = parseInt(val);
-        document.getElementById(`thresh-val-${classId}`).innerText = `${val}%`;
-      }
-    }
+            <span id="conf-text-${c.id}" style="font-size:0.9rem; color:#0284c7; font-weight:bold;">0%</span>
+         </div>
+         <div class="meter-bar-bg">
+           <div id="meter-fill-${c.id}" class="meter-bar-fill"></div>
+@@ -657,14 +688,12 @@ <h1>Image Recognition AI Maker</h1>
+}
+}
 
     // リアルタイム推論ループ
-    let lastPredictionTime = 0;
+let lastPredictionTime = 0;
 
-    async function startPredictionLoop() {
-      async function predictionLoop(timestamp) {
-        if (currentPhase === 3 && customModel) {
+async function startPredictionLoop() {
+async function predictionLoop(timestamp) {
+if (currentPhase === 3 && customModel) {
           
           if (timestamp - lastPredictionTime >= 500) {
-            lastPredictionTime = timestamp;
+          if (timestamp - lastPredictionTime >= 300) {
+lastPredictionTime = timestamp;
 
-            try {
-              tf.tidy(() => {
-                const activation = net.infer(webcamElement, true);
-                const predictions = customModel.predict(activation);
-                const probArray = predictions.dataSync(); 
-
-                let detectedClass = null;
-                let maxConfAboveThresh = 0;
-
-                classes.forEach((c) => {
-                  const prob = probArray[c.id] || 0;
-                  const confPct = Math.round(prob * 100);
-                  c.confidence = confPct;
-
-                  const fillEl = document.getElementById(`meter-fill-${c.id}`);
-                  const textEl = document.getElementById(`conf-text-${c.id}`);
-                  if (fillEl) fillEl.style.width = `${confPct}%`;
-                  if (textEl) textEl.innerText = `${confPct}%`;
-
-                  if (confPct >= c.threshold && confPct > maxConfAboveThresh) {
-                    maxConfAboveThresh = confPct;
-                    detectedClass = c;
-                  }
-                });
-
-                const resultEl = document.getElementById('detection-result-text');
-                if (detectedClass) {
-                  resultEl.innerText = `${detectedClass.name}`;
-                  resultEl.style.color = '#16a34a'; 
-                } else {
-                  resultEl.innerText = '検出条件未達成';
-                  resultEl.style.color = '#64748b';
-                }
-              });
-            } catch (e) {
-              console.error("推論エラー:", e);
-            }
-          }
-        }
-        requestAnimationFrame(predictionLoop);
-      }
-      requestAnimationFrame(predictionLoop);
-    }
-
-    window.addEventListener('DOMContentLoaded', init);
-  </script>
-</body>
-</html>
+try {
